@@ -31,27 +31,27 @@ It pulls comments from **Issues**, **Pull Requests**, and **Commits** across you
 
 | Category | Color | Examples |
 |----------|-------|----------|
-| 🟢 **Useful** | Green | Bug reports, suggestions, questions, code reviews, feature requests |
-| 🔴 **Noise** | Red | "Thanks!", "+1", emoji-only, bot messages, "LGTM" |
-| 🟡 **Neutral** | Yellow | Everything in between |
+| **Useful** | Green | Bug reports, suggestions, questions, code reviews, feature requests |
+| **Noise** | Red | "Thanks!", "+1", emoji-only, bot messages, "LGTM" |
+| **Neutral** | Yellow | Everything in between |
 
 No AI APIs. No subscriptions. **Completely free and offline** after fetching.
 
 ---
 
-## ✨ Features
+##  Features
 
-- **🔍 Smart Classification** — Heuristic-based classifier scores comments using keyword matching, length analysis, code block detection, and bot filtering
-- **📊 Dashboard Stats** — See your total, useful, noise, and neutral counts at a glance
-- **🎯 Filter Tabs** — Quickly toggle between All / Useful / Noise / Neutral
-- **🔗 One-Click Navigation** — Click any comment card to open it directly on GitHub
-- **🔒 Privacy First** — Your token stays in local Chrome storage. No data sent to third parties
-- **⚡ Cached Results** — Comments are cached locally for instant re-opens
-- **🎨 Apple Liquid Glass UI** — Frosted glass panels, ambient glows, smooth animations
+- ** Smart Classification** — Heuristic-based classifier scores comments using keyword matching, length analysis, code block detection, and bot filtering
+- ** Dashboard Stats** — See your total, useful, noise, and neutral counts at a glance
+- ** Filter Tabs** — Quickly toggle between All / Useful / Noise / Neutral
+- ** One-Click Navigation** — Click any comment card to open it directly on GitHub
+- ** Privacy First** — Your token stays in local Chrome storage. No data sent to third parties
+- ** Cached Results** — Comments are cached locally for instant re-opens
+- ** Apple Liquid Glass UI** — Frosted glass panels, ambient glows, smooth animations
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 
@@ -88,7 +88,7 @@ No AI APIs. No subscriptions. **Completely free and offline** after fetching.
 
 ---
 
-## 🏗️ Project Structure
+##  Project Structure
 
 ```
 GitSweep/
@@ -143,18 +143,6 @@ GitSweep/
 
 ---
 
-## 🎨 Design
-
-GitSweep uses an **Apple-inspired liquid glass** design language:
-
-- Frosted glass panels with `backdrop-filter: blur()`
-- Ambient radial glows (blue + green)
-- Glassmorphism cards with hover lift effects
-- Staggered fade-in animations
-- **Inter** font family from Google Fonts
-- Dark-only theme optimized for low-light usage
-
----
 
 ## 📡 API Usage
 
@@ -216,5 +204,5 @@ This project is licensed under the MIT License — see the [LICENSE](LICENSE) fi
 </p>
 
 <p align="center">
-  Made with ☕ and 🧹
+  Made with ❤️ by Aarya Nadiger
 </p>
