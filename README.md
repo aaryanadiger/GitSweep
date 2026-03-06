@@ -160,12 +160,12 @@ GitSweep uses the [GitHub REST API v3](https://docs.github.com/en/rest) with the
 
 ---
 
-## 🛡️ Privacy & Security
+##  Privacy & Security
 
-- 🔐 Your PAT is stored in `chrome.storage.sync` — encrypted by Chrome, never leaves your browser
-- 🚫 No data is sent to any third-party server
-- 🧠 Classification runs entirely offline using local heuristics
-- 🗑️ Clear your cache anytime from Settings
+-  Your PAT is stored in `chrome.storage.sync` — encrypted by Chrome, never leaves your browser
+-  No data is sent to any third-party server
+- Classification runs entirely offline using local heuristics
+-  Clear your cache anytime from Settings
 
 ---
 
@@ -181,7 +181,7 @@ GitSweep uses the [GitHub REST API v3](https://docs.github.com/en/rest) with the
 
 ---
 
-## 🤝 Contributing
+##  Contributing
 
 Contributions are welcome! Feel free to open issues or submit pull requests.
 
@@ -193,15 +193,11 @@ Contributions are welcome! Feel free to open issues or submit pull requests.
 
 ---
 
-## 📄 License
+##  License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
 ---
-
-<p align="center">
-  <strong>Developer:</strong> <a href="https://github.com/aaryanadiger">Aarya Nadiger</a>
-</p>
 
 <p align="center">
   Made with ❤️ by Aarya Nadiger
