@@ -1,14 +1,19 @@
 /**
  * GitSweep Popup Logic
- * Manages state, rendering, filtering, and user interactions.
+ * Manages state, rendering, filtering, settings, and user interactions.
+ * Settings are integrated directly into the popup (no separate options page).
  */
 
 // ---- DOM Elements ----
+
+// Main view
 const commentList = document.getElementById('commentList');
-const statsBar = document.getElementById('statsBar');
 const filterTabs = document.getElementById('filterTabs');
+const tabIndicator = document.getElementById('tabIndicator');
 const footer = document.getElementById('footer');
 const lastUpdated = document.getElementById('lastUpdated');
+const mainView = document.getElementById('mainView');
+const contentPanel = document.getElementById('contentPanel');
 
 // State views
 const loadingState = document.getElementById('loadingState');
@@ -17,25 +22,46 @@ const setupState = document.getElementById('setupState');
 const errorState = document.getElementById('errorState');
 const errorMsg = document.getElementById('errorMsg');
 
-// Stats
-const totalCount = document.getElementById('totalCount');
-const usefulCount = document.getElementById('usefulCount');
-const noiseCount = document.getElementById('noiseCount');
-const neutralCount = document.getElementById('neutralCount');
-
 // Buttons
-const refreshBtn = document.getElementById('refreshBtn');
 const settingsBtn = document.getElementById('settingsBtn');
+const userBtn = document.getElementById('userBtn');
 const setupBtn = document.getElementById('setupBtn');
 const retryBtn = document.getElementById('retryBtn');
+
+// Settings view
+const settingsView = document.getElementById('settingsView');
+const settingsBackBtn = document.getElementById('settingsBackBtn');
+const tokenInput = document.getElementById('tokenInput');
+const toggleVisibility = document.getElementById('toggleVisibility');
+const saveBtn = document.getElementById('saveBtn');
+const validateBtn = document.getElementById('validateBtn');
+const tokenStatus = document.getElementById('tokenStatus');
+const statusDot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+const userCard = document.getElementById('userCard');
+const userAvatar = document.getElementById('userAvatar');
+const userName = document.getElementById('userName');
+const clearCacheBtn = document.getElementById('clearCacheBtn');
+const cacheStatus = document.getElementById('cacheStatus');
 
 // ---- State ----
 let allComments = [];
 let activeFilter = 'all';
+let settingsOpen = false;
 
 // ---- Init ----
+function initTabIndicator() {
+    if (!tabIndicator) return;
+    const activeTab = filterTabs.querySelector('.tab.active');
+    if (activeTab) {
+        tabIndicator.style.transform = `translateX(${activeTab.offsetLeft - 4}px)`;
+        tabIndicator.style.width = `${activeTab.offsetWidth}px`;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
-    // Check if token exists
+    initTabIndicator();
+
     const { github_token } = await chrome.storage.sync.get('github_token');
 
     if (!github_token) {
@@ -43,57 +69,181 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    // Pre-load token into settings
+    tokenInput.value = github_token;
+    validateToken(github_token);
+
     // Try to load cached data
     const { cachedComments } = await chrome.storage.local.get('cachedComments');
 
     if (cachedComments && cachedComments.comments?.length) {
         allComments = cachedComments.comments;
         renderComments();
-        updateStats();
         showLastUpdated(cachedComments.fetchedAt);
     } else {
         fetchComments();
     }
 });
 
-// ---- Event Listeners ----
-
-refreshBtn.addEventListener('click', () => {
-    fetchComments();
-});
+// ================================================================
+// EVENT LISTENERS — Main View
+// ================================================================
 
 settingsBtn.addEventListener('click', () => {
-    chrome.runtime.openOptionsPage();
+    openSettings();
+});
+
+userBtn.addEventListener('click', () => {
+    openSettings();
 });
 
 setupBtn.addEventListener('click', () => {
-    chrome.runtime.openOptionsPage();
+    openSettings();
 });
 
 retryBtn.addEventListener('click', () => {
     fetchComments();
 });
 
-// Filter tabs
-filterTabs.addEventListener('click', (e) => {
-    if (!e.target.classList.contains('tab')) return;
+// ================================================================
+// EVENT LISTENERS — Main View
+// ================================================================
 
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+filterTabs.addEventListener('click', (e) => {
+    if (e.target.tagName !== 'BUTTON') return;
+
+    // Update active class
+    filterTabs.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     e.target.classList.add('active');
+
+    // Animate indicator
+    if (tabIndicator) {
+        tabIndicator.style.transform = `translateX(${e.target.offsetLeft - 4}px)`;
+        tabIndicator.style.width = `${e.target.offsetWidth}px`;
+    }
 
     activeFilter = e.target.dataset.filter;
     renderComments();
 });
 
-// ---- Functions ----
+// ================================================================
+// EVENT LISTENERS — Settings View
+// ================================================================
+
+settingsBackBtn.addEventListener('click', () => {
+    closeSettings();
+});
+
+// Toggle token visibility
+let tokenVisible = false;
+toggleVisibility.addEventListener('click', () => {
+    tokenVisible = !tokenVisible;
+    tokenInput.type = tokenVisible ? 'text' : 'password';
+});
+
+// Save token
+saveBtn.addEventListener('click', async () => {
+    const token = tokenInput.value.trim();
+    if (!token) {
+        showStatus('invalid', 'Please enter a token');
+        return;
+    }
+
+    await chrome.storage.sync.set({ github_token: token });
+    showStatus('valid', 'Token saved successfully');
+    validateToken(token);
+});
+
+// Validate token
+validateBtn.addEventListener('click', () => {
+    const token = tokenInput.value.trim();
+    if (!token) {
+        showStatus('invalid', 'Please enter a token first');
+        return;
+    }
+    validateToken(token);
+});
+
+// Clear cache
+clearCacheBtn.addEventListener('click', async () => {
+    await chrome.storage.local.remove('cachedComments');
+    cacheStatus.textContent = 'Cache cleared ✓';
+    setTimeout(() => { cacheStatus.textContent = ''; }, 3000);
+});
+
+// ================================================================
+// SETTINGS PANEL — Open/Close
+// ================================================================
+
+function openSettings() {
+    settingsOpen = true;
+    settingsView.classList.add('active');
+    mainView.classList.add('hidden');
+
+    // Load current token
+    chrome.storage.sync.get('github_token', (data) => {
+        if (data.github_token) {
+            tokenInput.value = data.github_token;
+        }
+    });
+}
+
+function closeSettings() {
+    settingsOpen = false;
+    settingsView.classList.remove('active');
+    mainView.classList.remove('hidden');
+
+    // Check if token was just added (transition from setup to fetch)
+    chrome.storage.sync.get('github_token', (data) => {
+        if (data.github_token && allComments.length === 0) {
+            fetchComments();
+        }
+    });
+}
+
+// ================================================================
+// SETTINGS FUNCTIONS
+// ================================================================
+
+async function validateToken(token) {
+    showStatus('checking', 'Validating token…');
+
+    chrome.runtime.sendMessage({ action: 'validateToken', token }, (response) => {
+        if (chrome.runtime.lastError) {
+            showStatus('invalid', 'Could not validate — extension error');
+            return;
+        }
+
+        if (response?.valid) {
+            showStatus('valid', `Authenticated as @${response.user}`);
+            showUserCard(response.user, response.avatar);
+        } else {
+            showStatus('invalid', `Invalid: ${response?.error || 'unknown error'}`);
+            userCard.style.display = 'none';
+        }
+    });
+}
+
+function showStatus(state, message) {
+    tokenStatus.style.display = 'flex';
+    statusDot.className = `status-dot ${state}`;
+    statusText.textContent = message;
+}
+
+function showUserCard(name, avatar) {
+    userCard.style.display = 'block';
+    userName.textContent = `@${name}`;
+    if (avatar) userAvatar.src = avatar;
+}
+
+// ================================================================
+// MAIN VIEW FUNCTIONS
+// ================================================================
 
 function fetchComments() {
     showView('loading');
-    refreshBtn.classList.add('spinning');
 
     chrome.runtime.sendMessage({ action: 'fetchComments' }, (response) => {
-        refreshBtn.classList.remove('spinning');
-
         if (chrome.runtime.lastError) {
             showError('Could not connect to background service.');
             return;
@@ -107,24 +257,23 @@ function fetchComments() {
         if (response?.data) {
             allComments = response.data.comments;
             renderComments();
-            updateStats();
             showLastUpdated(response.data.fetchedAt);
         }
     });
 }
 
 function showView(view) {
-    // Hide everything
+    // Hide state views
     loadingState.style.display = 'none';
     emptyState.style.display = 'none';
     setupState.style.display = 'none';
     errorState.style.display = 'none';
-    statsBar.style.display = 'none';
-    filterTabs.style.display = 'none';
     footer.style.display = 'none';
 
-    // Remove comment cards
+    // Remove comment cards (but keep state views)
     commentList.querySelectorAll('.comment-card').forEach(c => c.remove());
+
+    // NOTE: filterTabs are always visible — never hidden
 
     switch (view) {
         case 'loading':
@@ -140,8 +289,6 @@ function showView(view) {
             errorState.style.display = 'flex';
             break;
         case 'comments':
-            statsBar.style.display = 'flex';
-            filterTabs.style.display = 'flex';
             footer.style.display = 'block';
             break;
     }
@@ -150,17 +297,6 @@ function showView(view) {
 function showError(msg) {
     showView('error');
     errorMsg.textContent = msg;
-}
-
-function updateStats() {
-    const useful = allComments.filter(c => c.classification?.category === 'useful').length;
-    const noise = allComments.filter(c => c.classification?.category === 'noise').length;
-    const neutral = allComments.filter(c => c.classification?.category === 'neutral').length;
-
-    totalCount.textContent = allComments.length;
-    usefulCount.textContent = useful;
-    noiseCount.textContent = noise;
-    neutralCount.textContent = neutral;
 }
 
 function showLastUpdated(isoDate) {
@@ -181,6 +317,8 @@ function showLastUpdated(isoDate) {
 function renderComments() {
     // Clear existing cards
     commentList.querySelectorAll('.comment-card').forEach(c => c.remove());
+    // Also clear any inline "no results" state views
+    commentList.querySelectorAll('.state-view-inline').forEach(c => c.remove());
 
     let filtered = allComments;
     if (activeFilter !== 'all') {
@@ -195,13 +333,12 @@ function renderComments() {
     showView('comments');
 
     if (filtered.length === 0) {
-        // Show inline empty for filter
         const noResults = document.createElement('div');
-        noResults.className = 'state-view';
+        noResults.className = 'state-view state-view-inline';
         noResults.innerHTML = `
-      <p class="state-text">No ${activeFilter} comments</p>
-      <p class="state-sub">Try a different filter</p>
-    `;
+            <p class="state-text">No ${activeFilter} comments</p>
+            <p class="state-sub">Try a different filter</p>
+        `;
         commentList.appendChild(noResults);
         return;
     }
@@ -227,20 +364,20 @@ function createCommentCard(comment) {
     const repoShort = comment.repo?.split('/')[1] || comment.repo;
 
     card.innerHTML = `
-    <div class="card-header">
-      <img class="avatar" src="${comment.user?.avatar_url || ''}" alt="${comment.user?.login || 'user'}" loading="lazy">
-      <div class="card-meta">
-        <div class="card-user">${escapeHtml(comment.user?.login || 'Unknown')}</div>
-        <div class="card-repo">${escapeHtml(repoShort)}</div>
-      </div>
-      <span class="card-badge ${category}">${category}</span>
-    </div>
-    <div class="card-body">${escapeHtml(comment.body || '')}</div>
-    <div class="card-footer">
-      <span class="card-time">${timeAgo}</span>
-      <span class="card-type">${typeLabel}</span>
-    </div>
-  `;
+        <div class="card-header">
+            <img class="avatar" src="${comment.user?.avatar_url || ''}" alt="${comment.user?.login || 'user'}" loading="lazy">
+            <div class="card-meta">
+                <div class="card-user">${escapeHtml(comment.user?.login || 'Unknown')}</div>
+                <div class="card-repo">${escapeHtml(repoShort)}</div>
+            </div>
+            <span class="card-badge ${category}">${category}</span>
+        </div>
+        <div class="card-body">${escapeHtml(comment.body || '')}</div>
+        <div class="card-footer">
+            <span class="card-time">${timeAgo}</span>
+            <span class="card-type">${typeLabel}</span>
+        </div>
+    `;
 
     return card;
 }
