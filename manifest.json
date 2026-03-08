@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "GitSweep",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Filter and classify GitHub comments on your profile — surface the useful, sweep away the noise.",
   "permissions": [
     "storage",
