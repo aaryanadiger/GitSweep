@@ -10,8 +10,7 @@
 const commentList = document.getElementById('commentList');
 const filterTabs = document.getElementById('filterTabs');
 const tabIndicator = document.getElementById('tabIndicator');
-const footer = document.getElementById('footer');
-const lastUpdated = document.getElementById('lastUpdated');
+
 const mainView = document.getElementById('mainView');
 const contentPanel = document.getElementById('contentPanel');
 
@@ -33,8 +32,10 @@ const settingsView = document.getElementById('settingsView');
 const settingsBackBtn = document.getElementById('settingsBackBtn');
 const tokenInput = document.getElementById('tokenInput');
 const toggleVisibility = document.getElementById('toggleVisibility');
-const saveBtn = document.getElementById('saveBtn');
 const validateBtn = document.getElementById('validateBtn');
+const changeAccountBtn = document.getElementById('changeAccountBtn');
+const validatedText = document.getElementById('validatedText');
+const tokenInputGroup = document.getElementById('tokenInputGroup');
 const tokenStatus = document.getElementById('tokenStatus');
 const statusDot = document.getElementById('statusDot');
 const statusText = document.getElementById('statusText');
@@ -54,7 +55,7 @@ function initTabIndicator() {
     if (!tabIndicator) return;
     const activeTab = filterTabs.querySelector('.tab.active');
     if (activeTab) {
-        tabIndicator.style.transform = `translateX(${activeTab.offsetLeft - 4}px)`;
+        tabIndicator.style.transform = `translateX(${activeTab.offsetLeft - 5}px)`;
         tabIndicator.style.width = `${activeTab.offsetWidth}px`;
     }
 }
@@ -79,7 +80,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (cachedComments && cachedComments.comments?.length) {
         allComments = cachedComments.comments;
         renderComments();
-        showLastUpdated(cachedComments.fetchedAt);
+
     } else {
         fetchComments();
     }
@@ -94,7 +95,12 @@ settingsBtn.addEventListener('click', () => {
 });
 
 userBtn.addEventListener('click', () => {
-    openSettings();
+    const user = userBtn.dataset.username;
+    if (user) {
+        chrome.tabs.create({ url: `https://github.com/${user}` });
+    } else {
+        openSettings();
+    }
 });
 
 setupBtn.addEventListener('click', () => {
@@ -118,7 +124,7 @@ filterTabs.addEventListener('click', (e) => {
 
     // Animate indicator
     if (tabIndicator) {
-        tabIndicator.style.transform = `translateX(${e.target.offsetLeft - 4}px)`;
+        tabIndicator.style.transform = `translateX(${e.target.offsetLeft - 5}px)`;
         tabIndicator.style.width = `${e.target.offsetWidth}px`;
     }
 
@@ -141,17 +147,31 @@ toggleVisibility.addEventListener('click', () => {
     tokenInput.type = tokenVisible ? 'text' : 'password';
 });
 
-// Save token
-saveBtn.addEventListener('click', async () => {
-    const token = tokenInput.value.trim();
-    if (!token) {
-        showStatus('invalid', 'Please enter a token');
-        return;
-    }
+// Reset validate button if typing new token
+tokenInput.addEventListener('input', () => {
+    validateBtn.style.display = 'inline-block';
+    validatedText.style.display = 'none';
+    userCard.style.display = 'none';
+    tokenStatus.style.display = 'none';
+});
 
-    await chrome.storage.sync.set({ github_token: token });
-    showStatus('valid', 'Token saved successfully');
-    validateToken(token);
+// Change Account
+changeAccountBtn.addEventListener('click', async () => {
+    const confirmed = window.confirm('Are you sure you want to change accounts? This will clear your current session.');
+    if (!confirmed) return;
+
+    // Clear storage
+    await chrome.storage.sync.remove('github_token');
+
+    // Reset UI
+    tokenInput.value = '';
+    tokenInputGroup.style.display = 'block';
+    validateBtn.style.display = 'inline-block';
+    changeAccountBtn.style.display = 'none';
+    validatedText.style.display = 'none';
+    userCard.style.display = 'none';
+    tokenStatus.style.display = 'none';
+    delete userBtn.dataset.username;
 });
 
 // Validate token
@@ -183,7 +203,16 @@ function openSettings() {
     // Load current token
     chrome.storage.sync.get('github_token', (data) => {
         if (data.github_token) {
-            tokenInput.value = data.github_token;
+            tokenInputGroup.style.display = 'none';
+            validateBtn.style.display = 'none';
+            changeAccountBtn.style.display = 'inline-block';
+            validatedText.style.display = 'inline-flex';
+        } else {
+            tokenInputGroup.style.display = 'block';
+            validateBtn.style.display = 'inline-block';
+            changeAccountBtn.style.display = 'none';
+            validatedText.style.display = 'none';
+            tokenInput.value = '';
         }
     });
 }
@@ -217,9 +246,22 @@ async function validateToken(token) {
         if (response?.valid) {
             showStatus('valid', `Authenticated as @${response.user}`);
             showUserCard(response.user, response.avatar);
+            userBtn.dataset.username = response.user;
+
+            // Auto-save the token upon successful validation
+            chrome.storage.sync.set({ github_token: token });
+
+            // Swap button for text, hide input group
+            tokenInputGroup.style.display = 'none';
+            validateBtn.style.display = 'none';
+            validatedText.style.display = 'inline-flex';
+            changeAccountBtn.style.display = 'inline-block';
         } else {
             showStatus('invalid', `Invalid: ${response?.error || 'unknown error'}`);
             userCard.style.display = 'none';
+            validateBtn.style.display = 'inline-block';
+            validatedText.style.display = 'none';
+            delete userBtn.dataset.username;
         }
     });
 }
@@ -257,7 +299,7 @@ function fetchComments() {
         if (response?.data) {
             allComments = response.data.comments;
             renderComments();
-            showLastUpdated(response.data.fetchedAt);
+
         }
     });
 }
@@ -268,7 +310,7 @@ function showView(view) {
     emptyState.style.display = 'none';
     setupState.style.display = 'none';
     errorState.style.display = 'none';
-    footer.style.display = 'none';
+
 
     // Remove comment cards (but keep state views)
     commentList.querySelectorAll('.comment-card').forEach(c => c.remove());
@@ -289,7 +331,6 @@ function showView(view) {
             errorState.style.display = 'flex';
             break;
         case 'comments':
-            footer.style.display = 'block';
             break;
     }
 }
@@ -299,20 +340,7 @@ function showError(msg) {
     errorMsg.textContent = msg;
 }
 
-function showLastUpdated(isoDate) {
-    if (!isoDate) return;
-    const date = new Date(isoDate);
-    const now = new Date();
-    const diff = Math.round((now - date) / 60000);
 
-    let text;
-    if (diff < 1) text = 'Updated just now';
-    else if (diff < 60) text = `Updated ${diff}m ago`;
-    else if (diff < 1440) text = `Updated ${Math.round(diff / 60)}h ago`;
-    else text = `Updated ${date.toLocaleDateString()}`;
-
-    lastUpdated.textContent = text;
-}
 
 function renderComments() {
     // Clear existing cards

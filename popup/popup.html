@@ -112,10 +112,7 @@
         </div>
       </div>
 
-      <!-- Footer -->
-      <div class="footer" id="footer" style="display:none;">
-        <span id="lastUpdated" class="footer-text"></span>
-      </div>
+      <!-- Footer removed -->
     </div>
 
     <!-- ============ SETTINGS VIEW (slide-over) ============ -->
@@ -139,7 +136,7 @@
             <a href="https://github.com/settings/tokens" target="_blank" class="link">Generate one →</a>
           </p>
 
-          <div class="input-group">
+          <div class="input-group" id="tokenInputGroup">
             <label for="tokenInput" class="input-label">Personal Access Token</label>
             <div class="input-row">
               <input type="password" id="tokenInput" class="glass-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
@@ -161,8 +158,9 @@
           </div>
 
           <div class="btn-row">
-            <button id="saveBtn" class="primary-btn">Save Token</button>
             <button id="validateBtn" class="secondary-btn">Validate</button>
+            <button id="changeAccountBtn" class="secondary-btn" style="display:none;">Change Account</button>
+            <span id="validatedText" class="validated-text" style="display:none;">Validated ✓</span>
           </div>
         </div>
 
@@ -189,7 +187,7 @@
 
         <!-- About -->
         <div class="glass-card about">
-          <p class="about-text">GitSweep v1.0.0</p>
+          <p class="about-text">GitSweep v1.0.2</p>
           <p class="about-sub">Sweep through the noise. Surface what matters.</p>
         </div>
       </div>
